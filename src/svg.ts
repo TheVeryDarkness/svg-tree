@@ -110,13 +110,12 @@ class NodeBase<T extends Data<Key>, Key extends string | number | symbol = "path
   }
 
   protected get borderColor(): string | undefined {
-    return this.data_?.color ?? defaultOptions.color.borderColor;
+    return this.data_?.color ?? this.options?.color?.borderColor ?? defaultOptions.color.borderColor;
   }
   protected get textColor(): string | undefined {
-    return this.data_?.color ?? (this.active ? defaultOptions.color.textActiveColor : this.hover ? defaultOptions.color.textHoverColor : defaultOptions.color.textColor);
   }
   protected get backgroundColor(): string | undefined {
-    return this.data_?.backgroundColor ?? defaultOptions.color.backgroundColor;
+    return this.data_?.backgroundColor ?? this.options?.color?.backgroundColor ?? defaultOptions.color.backgroundColor;
   }
   protected get dashArray(): string | number | undefined {
     return this.data_.dashArray;
