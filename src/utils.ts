@@ -1,4 +1,4 @@
-import { Position as Point } from './types.js';
+import { Position as Point } from "./types.js";
 
 /**
  * Utility functions for working with SVG elements
@@ -38,7 +38,7 @@ export class SVGUtils {
 
     return {
       x: center.x + dx * cos - dy * sin,
-      y: center.y + dx * sin + dy * cos
+      y: center.y + dx * sin + dy * cos,
     };
   }
 
@@ -70,7 +70,7 @@ export class SVGUtils {
    * Combine multiple transforms
    */
   static combineTransforms(...transforms: string[]): string {
-    return transforms.join(' ');
+    return transforms.join(" ");
   }
 
   /**
@@ -114,15 +114,15 @@ export class SVGUtils {
   static regularPolygon(center: Point, radius: number, sides: number, rotation: number = 0): Point[] {
     const points: Point[] = [];
     const angleStep = (Math.PI * 2) / sides;
-    
+
     for (let i = 0; i < sides; i++) {
       const angle = angleStep * i + rotation;
       points.push({
         x: center.x + Math.cos(angle) * radius,
-        y: center.y + Math.sin(angle) * radius
+        y: center.y + Math.sin(angle) * radius,
       });
     }
-    
+
     return points;
   }
 
@@ -132,16 +132,16 @@ export class SVGUtils {
   static star(center: Point, outerRadius: number, innerRadius: number, points: number, rotation: number = 0): Point[] {
     const result: Point[] = [];
     const angleStep = Math.PI / points;
-    
+
     for (let i = 0; i < points * 2; i++) {
       const angle = angleStep * i + rotation;
       const radius = i % 2 === 0 ? outerRadius : innerRadius;
       result.push({
         x: center.x + Math.cos(angle) * radius,
-        y: center.y + Math.sin(angle) * radius
+        y: center.y + Math.sin(angle) * radius,
       });
     }
-    
+
     return result;
   }
 }

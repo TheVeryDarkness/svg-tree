@@ -32,9 +32,13 @@
     "clean": "rm -r dist",
     "prepublishOnly": "pnpm run clean && pnpm run build",
     "format:check": "prettier --check ."
-
   },
-  "keywords": ["svg", "typescript", "graphics", "rendering"],
+  "keywords": [
+    "svg",
+    "typescript",
+    "graphics",
+    "rendering"
+  ],
   "author": "",
   "license": "ISC",
   "devDependencies": {

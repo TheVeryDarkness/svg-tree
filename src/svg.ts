@@ -113,6 +113,14 @@ class NodeBase<T extends Data<Key>, Key extends string | number | symbol = "path
     return this.data_?.color ?? this.options?.color?.borderColor ?? defaultOptions.color.borderColor;
   }
   protected get textColor(): string | undefined {
+    return (
+      this.data_?.color ??
+      (this.active
+        ? (this.options?.color?.textActiveColor ?? defaultOptions.color.textActiveColor)
+        : this.hover
+          ? (this.options?.color?.textHoverColor ?? defaultOptions.color.textHoverColor)
+          : (this.options?.color?.textColor ?? defaultOptions.color.textColor))
+    );
   }
   protected get backgroundColor(): string | undefined {
     return this.data_?.backgroundColor ?? this.options?.color?.backgroundColor ?? defaultOptions.color.backgroundColor;
@@ -281,8 +289,16 @@ export class TreeNode<T extends Data<Key> & Children<T>, Key extends string | nu
    */
   private static computeExtendSize(rectSize: Size, margin: Position): TreeNodeSize {
     return {
-      bounding: { width: rectSize.width + margin.x * 2, height: rectSize.height + margin.y * 2 },
-      name: { x: margin.x, y: margin.y, width: rectSize.width, height: rectSize.height },
+      bounding: {
+        width: rectSize.width + margin.x * 2,
+        height: rectSize.height + margin.y * 2,
+      },
+      name: {
+        x: margin.x,
+        y: margin.y,
+        width: rectSize.width,
+        height: rectSize.height,
+      },
     };
   }
 
@@ -1377,12 +1393,32 @@ class Manager<T extends Data<Key> & Children<T>, Key extends string | number | s
 }
 
 interface EventMap<T extends Data<Key> & Children<T>, Key extends string | number | symbol = "path"> {
-  active: { node: TreeNode<T, Key>[]; key: string | number | undefined; uuid: number[] };
+  active: {
+    node: TreeNode<T, Key>[];
+    key: string | number | undefined;
+    uuid: number[];
+  };
   click: { node?: TreeNode<T, Key>; originalEvent: MouseEvent; uuid?: number };
-  contextmenu: { node?: TreeNode<T, Key>; originalEvent: MouseEvent; uuid?: number };
-  keydown: { node: TreeNode<T, Key>; originalEvent: KeyboardEvent; uuid: number };
-  mouseenter: { node: TreeNode<T, Key>; originalEvent: MouseEvent; uuid: number };
-  mouseleave: { node: TreeNode<T, Key>; originalEvent: MouseEvent; uuid: number };
+  contextmenu: {
+    node?: TreeNode<T, Key>;
+    originalEvent: MouseEvent;
+    uuid?: number;
+  };
+  keydown: {
+    node: TreeNode<T, Key>;
+    originalEvent: KeyboardEvent;
+    uuid: number;
+  };
+  mouseenter: {
+    node: TreeNode<T, Key>;
+    originalEvent: MouseEvent;
+    uuid: number;
+  };
+  mouseleave: {
+    node: TreeNode<T, Key>;
+    originalEvent: MouseEvent;
+    uuid: number;
+  };
 }
 export type EventKind<K extends keyof EventMap<T, Key>, T extends Data<Key> & Children<T>, Key extends string | number | symbol = "path"> = EventMap<T, Key>[K];
 function event<K extends keyof EventMap<T, Key>, T extends Data<Key> & Children<T>, Key extends string | number | symbol = "path">(
@@ -1429,7 +1465,13 @@ export class Tree<T extends Data<Key> & Children<T>, Key extends string | number
         const [node, uuid] = target;
         node.setHover(type === "mouseover");
         const eventType = type === "mouseover" ? "mouseenter" : "mouseleave";
-        this.eventTarget.dispatchEvent(event<typeof eventType, T, Key>(eventType, { node, originalEvent: e, uuid }));
+        this.eventTarget.dispatchEvent(
+          event<typeof eventType, T, Key>(eventType, {
+            node,
+            originalEvent: e,
+            uuid,
+          }),
+        );
       });
     }
   }
@@ -1448,7 +1490,13 @@ export class Tree<T extends Data<Key> & Children<T>, Key extends string | number
     }
 
     this.activeKey_ = node?.key;
-    this.eventTarget.dispatchEvent(event<"active", T, Key>("active", { node: node ? [node] : [], key: node?.key, uuid: node ? [node.uuid] : [] }));
+    this.eventTarget.dispatchEvent(
+      event<"active", T, Key>("active", {
+        node: node ? [node] : [],
+        key: node?.key,
+        uuid: node ? [node.uuid] : [],
+      }),
+    );
   }
   setActiveKey(key: string | number | undefined) {
     if (this.activeKey_ === key) return;
@@ -1463,7 +1511,13 @@ export class Tree<T extends Data<Key> & Children<T>, Key extends string | number
     }
 
     this.activeKey_ = key;
-    this.eventTarget.dispatchEvent(event<"active", T, Key>("active", { node: newActiveNodes, key, uuid: newActiveNodes.map((n) => n.uuid) }));
+    this.eventTarget.dispatchEvent(
+      event<"active", T, Key>("active", {
+        node: newActiveNodes,
+        key,
+        uuid: newActiveNodes.map((n) => n.uuid),
+      }),
+    );
   }
   get activeKey(): string | number | undefined {
     return this.activeKey_;
@@ -1544,7 +1598,13 @@ export class Forest<T extends Data<Key> & Children<T>, Key extends string | numb
           const [node, uuid] = target;
           node.setHover(type === "mouseover");
           const eventType = type === "mouseover" ? "mouseenter" : "mouseleave";
-          this.eventTarget.dispatchEvent(event<typeof eventType, T, Key>(eventType, { node, originalEvent: e, uuid }));
+          this.eventTarget.dispatchEvent(
+            event<typeof eventType, T, Key>(eventType, {
+              node,
+              originalEvent: e,
+              uuid,
+            }),
+          );
         });
       }
       for (const type of ["keydown"] as const) {
@@ -1581,7 +1641,13 @@ export class Forest<T extends Data<Key> & Children<T>, Key extends string | numb
     }
 
     this.activeKey_ = node?.key;
-    this.eventTarget.dispatchEvent(event<"active", T, Key>("active", { node: node ? [node] : [], key: node?.key, uuid: node ? [node.uuid] : [] }));
+    this.eventTarget.dispatchEvent(
+      event<"active", T, Key>("active", {
+        node: node ? [node] : [],
+        key: node?.key,
+        uuid: node ? [node.uuid] : [],
+      }),
+    );
   }
   setActiveKey(key: string | number | undefined) {
     if (this.activeKey_ === key) return;
@@ -1593,7 +1659,13 @@ export class Forest<T extends Data<Key> & Children<T>, Key extends string | numb
     }
 
     this.activeKey_ = key;
-    this.eventTarget.dispatchEvent(event<"active", T, Key>("active", { node: newActiveNodes, key, uuid: newActiveNodes.map((n) => n.uuid) }));
+    this.eventTarget.dispatchEvent(
+      event<"active", T, Key>("active", {
+        node: newActiveNodes,
+        key,
+        uuid: newActiveNodes.map((n) => n.uuid),
+      }),
+    );
   }
   get activeKey(): string | number | undefined {
     return this.activeKey_;

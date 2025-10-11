@@ -5,7 +5,7 @@ A TypeScript library for rendering objects into SVG in a programmatic, object-or
 ## Features
 
 - 🎯 **Fully Typed**: Written in TypeScript with complete type definitions
-- 🧩 **Composable**: Build complex SVG structures using simple, reusable components  
+- 🧩 **Composable**: Build complex SVG structures using simple, reusable components
 - 🎨 **Rich Shapes**: Support for rectangles, circles, paths, polygons, text and more
 - 🔧 **Utilities**: Helper functions for transformations, colors, and geometric calculations
 - 📦 **Zero Dependencies**: Pure TypeScript/JavaScript with no external dependencies
