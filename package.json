@@ -30,7 +30,9 @@
     "build": "tsc",
     "dev": "tsc --watch",
     "clean": "rm -r dist",
-    "prepublishOnly": "pnpm run clean && pnpm run build"
+    "prepublishOnly": "pnpm run clean && pnpm run build",
+    "format:check": "prettier --check ."
+
   },
   "keywords": ["svg", "typescript", "graphics", "rendering"],
   "author": "",
