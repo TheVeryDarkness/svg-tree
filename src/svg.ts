@@ -1054,7 +1054,7 @@ Z`,
   }
 
   scrollIntoView(behavior: ScrollBehavior = "smooth", block: ScrollLogicalPosition = "center", inline: ScrollLogicalPosition = "center") {
-    this.ref_.scrollIntoView({ behavior, block, inline });
+    this.node[1].scrollIntoView({ behavior, block, inline });
   }
 
   protected requestSkeletonUpdate() {
