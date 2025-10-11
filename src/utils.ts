@@ -1,4 +1,4 @@
-import { Point, Position, Size } from './types.js';
+import { Position as Point } from './types.js';
 
 /**
  * Utility functions for working with SVG elements

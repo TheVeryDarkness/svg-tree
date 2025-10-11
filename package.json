@@ -3,17 +3,34 @@
   "version": "1.0.0",
   "description": "TS library for rendering objects into SVG.",
   "type": "module",
-  "main": "dist/index.js",
-  "module": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "main": "dist/svg.js",
+  "module": "dist/svg.js",
+  "types": "dist/svg.d.ts",
   "files": [
     "dist"
   ],
+  "exports": {
+    "./svg": {
+      "types": "./dist/svg.d.ts",
+      "import": "./dist/svg.js",
+      "require": "./dist/svg.cjs"
+    },
+    "./types": {
+      "types": "./dist/types.d.ts",
+      "import": "./dist/types.js",
+      "require": "./dist/types.cjs"
+    },
+    "./utils": {
+      "types": "./dist/utils.d.ts",
+      "import": "./dist/utils.js",
+      "require": "./dist/utils.cjs"
+    }
+  },
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
-    "clean": "rm -rf dist",
-    "prepublishOnly": "npm run clean && npm run build"
+    "clean": "rm -r dist",
+    "prepublishOnly": "pnpm run clean && pnpm run build"
   },
   "keywords": ["svg", "typescript", "graphics", "rendering"],
   "author": "",
