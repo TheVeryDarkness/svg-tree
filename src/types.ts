@@ -2,29 +2,49 @@ export interface ColorOptions {
   /**
    * Stroke color of node borders and links.
    */
-  borderColor?: string;
+  borderColor: string;
+  /**
+   * Stroke color of node borders and links when hovering.
+   */
+  borderHoverColor: string;
+  /**
+   * Stroke color of node borders and links when active.
+   */
+  borderActiveColor: string;
+  /**
+   * Stroke color of links.
+   */
+  linkColor: string;
+  /**
+   * Stroke color of links when hovering.
+   */
+  linkHoverColor: string;
+  /**
+   * Stroke color of links when active.
+   */
+  linkActiveColor: string;
   /**
    * Fill color of nodes.
    */
-  backgroundColor?: string;
+  backgroundColor: string;
   /**
    * Fill color of node shadows.
    */
-  shadowColor?: string;
+  shadowColor: string;
   /**
    * Fill color of texts.
    *
    * May be overriden by {@link Data}.
    */
-  textColor?: string;
+  textColor: string;
   /**
    * Fill color of texts when hovering.
    */
-  textHoverColor?: string;
+  textHoverColor: string;
   /**
    * Fill color of texts when active.
    */
-  textActiveColor?: string;
+  textActiveColor: string;
 }
 export interface TextOptions {
   /**
@@ -39,6 +59,20 @@ export interface TextOptions {
    * Font weight of texts when active.
    */
   textActiveWeight: number;
+}
+export interface StrokeOptions {
+  /**
+   * Width of strokes.
+   */
+  strokeWidth: number;
+  /**
+   * Width of strokes when hovering.
+   */
+  strokeHoverWidth: number;
+  /**
+   * Width of strokes when active.
+   */
+  strokeActiveWidth: number;
 }
 /**
  * Layout options for the tree.
@@ -88,6 +122,7 @@ export interface ShapeOptions {
 export interface Options {
   color: ColorOptions;
   text: TextOptions;
+  stroke: StrokeOptions;
   layout: LayoutOptions;
   font: FontOptions;
   shape: ShapeOptions;
@@ -103,6 +138,11 @@ export type PartialShapeOptions = DeepPartial<ShapeOptions> | undefined;
 
 export const defaultLightColorOptions: Readonly<ColorOptions> = {
   borderColor: "gray",
+  borderHoverColor: "darkcyan",
+  borderActiveColor: "firebrick",
+  linkColor: "gray",
+  linkHoverColor: "darkcyan",
+  linkActiveColor: "firebrick",
   backgroundColor: "white",
   shadowColor: "darkgray",
   textColor: "black",
@@ -111,6 +151,11 @@ export const defaultLightColorOptions: Readonly<ColorOptions> = {
 };
 export const defaultDarkColorOptions: Readonly<ColorOptions> = {
   borderColor: "lightgray",
+  borderHoverColor: "darkcyan",
+  borderActiveColor: "darkred",
+  linkColor: "lightgray",
+  linkHoverColor: "darkcyan",
+  linkActiveColor: "darkred",
   backgroundColor: "darkgray",
   shadowColor: "black",
   textColor: "white",
@@ -147,6 +192,11 @@ export const defaultTextOptions: Readonly<TextOptions> = {
   textHoverWeight: 700,
   textActiveWeight: 1000,
 };
+export const defaultStrokeOptions: Readonly<StrokeOptions> = {
+  strokeWidth: 1,
+  strokeHoverWidth: 1,
+  strokeActiveWidth: 2,
+};
 export const defaultFontOptions: Readonly<FontOptions> = {
   fontFamily: undefined,
   fontSize: 14,
@@ -172,6 +222,7 @@ export const defaultShapeOptions: Readonly<ShapeOptions> = {
 export const defaultOptions: Options = {
   color: defaultColorOptions,
   text: defaultTextOptions,
+  stroke: defaultStrokeOptions,
   layout: defaultLayoutOptions,
   font: defaultFontOptions,
   shape: defaultShapeOptions,
@@ -209,6 +260,7 @@ export function mergeOptions(options: PartialOptions | undefined): Options {
   return {
     color: mergeColorOptions(options?.color),
     text: { ...defaultTextOptions, ...options?.text },
+    stroke: { ...defaultStrokeOptions, ...options?.stroke },
     layout: { ...defaultLayoutOptions, ...options?.layout },
     font: { ...defaultFontOptions, ...options?.font },
     shape: mergeShapeOptions(options?.shape),
@@ -240,7 +292,13 @@ export type Children<T> = { children: Lazy<T> };
 
 export type Data<Key extends string | number | symbol = "path"> = {
   name: string;
-  color?: string;
+  textColor?: string;
+  borderColor?: string;
+  /**
+   * @description The color of links from this node to its children.
+   * You can also use 'currentColor' to use the current stroke color.
+   */
+  linkColor?: string;
   backgroundColor?: string;
   dashArray?: string | number;
   /**
@@ -252,11 +310,6 @@ export type Data<Key extends string | number | symbol = "path"> = {
    * You can also use 'currentColor' to use the current stroke color.
    */
   outSelfFill?: string;
-  /**
-   * @description The color of links from this node to its children. If not provided, it will use the node's color.
-   * You can also use 'currentColor' to use the current stroke color.
-   */
-  outColor?: string;
   /**
    * @description The shape of the end points of links from this node to its children.
    */

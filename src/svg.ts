@@ -110,11 +110,25 @@ class NodeBase<T extends Data<Key>, Key extends string | number | symbol = "path
   }
 
   protected get borderColor(): string | undefined {
-    return this.data_?.color ?? this.options?.color?.borderColor ?? defaultOptions.color.borderColor;
+    return (
+      this.data_?.borderColor ??
+      (this.active
+        ? (this.options?.color?.borderActiveColor ?? defaultOptions.color.borderActiveColor)
+        : this.hover
+          ? (this.options?.color?.borderHoverColor ?? defaultOptions.color.borderHoverColor)
+          : (this.options?.color?.borderColor ?? defaultOptions.color.borderColor))
+    );
+  }
+  protected get strokeWidth(): number {
+    return this.active
+      ? (this.options?.stroke?.strokeActiveWidth ?? defaultOptions.stroke.strokeActiveWidth)
+      : this.hover
+        ? (this.options?.stroke?.strokeHoverWidth ?? defaultOptions.stroke.strokeHoverWidth)
+        : (this.options?.stroke?.strokeWidth ?? defaultOptions.stroke.strokeWidth);
   }
   protected get textColor(): string | undefined {
     return (
-      this.data_?.color ??
+      this.data_?.textColor ??
       (this.active
         ? (this.options?.color?.textActiveColor ?? defaultOptions.color.textActiveColor)
         : this.hover
@@ -134,8 +148,16 @@ class NodeBase<T extends Data<Key>, Key extends string | number | symbol = "path
   protected get outSelfFill(): string | undefined {
     return this.data_.outSelfFill;
   }
-  protected get outColor(): string | undefined {
-    return this.data_.outColor ?? this.data_.color ?? this.options?.color?.borderColor ?? defaultOptions.color.borderColor;
+  }
+  protected get linkColor(): string | undefined {
+    return (
+      this.data_?.linkColor ??
+      (this.active
+        ? (this.options?.color?.linkActiveColor ?? defaultOptions.color.linkActiveColor)
+        : this.hover
+          ? (this.options?.color?.linkHoverColor ?? defaultOptions.color.linkHoverColor)
+          : (this.options?.color?.linkColor ?? defaultOptions.color.linkColor))
+    );
   }
   protected get inChildrenShape(): (Shape | undefined)[] | undefined {
     return this.data_.inChildrenShape;
@@ -649,36 +671,41 @@ Z`,
     shadow.setAttribute("svg-uuid", String(uuid));
   }
 
-  private static setupOutShape(out_shape: SVGPathElement, outSelfFill: string | undefined, outColor: string | undefined, outPath: string, uuid: UUID) {
+  private static setupOutShape(out_shape: SVGPathElement, outSelfFill: string | undefined, linkColor: string | undefined, outPath: string, uuid: UUID) {
     out_shape.classList.add("link");
-    out_shape.style.fill = outSelfFill ?? "none";
+    out_shape.style.fill = outSelfFill ?? "transparent";
     out_shape.style.strokeLinejoin = "round";
     // out_shape.style.vectorEffect = "non-scaling-stroke";
-
-    if (outColor) out_shape.style.color = outColor;
+    if (linkColor) out_shape.style.stroke = linkColor;
     out_shape.setAttribute("d", outPath);
     out_shape.setAttribute("svg-uuid", String(uuid));
+    console.log(out_shape);
   }
 
   private static setupChild<T extends Data<Key> & Children<T>, Key extends string | number | symbol = "path">(
     [path, inShape, child]: Child<T, Key>,
     inChildFill: string | undefined,
-    outColor: string | undefined,
+    linkColor: string | undefined,
+    strokeWidth: number,
     dashArray: string | number | undefined,
     relative: Relative,
     uuid: UUID,
   ) {
     path.classList.add("link");
-    if (outColor) path.style.color = outColor;
     path.style.fill = "none";
+    // path.style.vectorEffect = "non-scaling-stroke";
+    if (linkColor) path.style.stroke = linkColor;
     if (dashArray) path.style.strokeDasharray = String(dashArray);
+    path.style.strokeWidth = String(strokeWidth);
     // path.style.strokeLinejoin = "round";
 
     if (inShape) {
       inShape.classList.add("link");
-      if (outColor) inShape.style.color = outColor;
-      inShape.style.fill = inChildFill ?? "none";
+      if (linkColor) inShape.style.stroke = linkColor;
+      inShape.style.fill = inChildFill ?? "transparent";
       inShape.style.strokeLinejoin = "round";
+      // inShape.style.vectorEffect = "non-scaling-stroke";
+      inShape.style.strokeWidth = String(strokeWidth);
     }
 
     path.setAttribute("d", relative.link);
@@ -698,8 +725,9 @@ Z`,
   private static setupExtend(
     [extend_path, extend_rect, extend_text]: Extend,
     borderColor: string | undefined,
+    linkColor: string | undefined,
     backgroundColor: string | undefined,
-    outColor: string | undefined,
+    strokeWidth: number,
     textColor: string | undefined,
     fontFamily: string | undefined,
     fontSize: number,
@@ -712,17 +740,20 @@ Z`,
   ) {
     extend_path.classList.add("link", "extend");
     extend_path.style.fill = "none";
-    if (outColor) extend_path.style.color = outColor;
+    if (linkColor) extend_path.style.stroke = linkColor;
     extend_path.style.strokeLinejoin = "round";
     // extend_path.style.vectorEffect = "non-scaling-stroke";
+    extend_path.style.strokeWidth = String(strokeWidth);
     extend_path.setAttribute("d", relative.link);
     extend_path.setAttribute("svg-uuid", String(uuid));
 
     extend_rect.classList.add("rect", "extend");
     extend_rect.style.boxSizing = "border-box";
-    if (borderColor) extend_rect.style.color = borderColor;
+    extend_rect.style.fill = "none";
+    if (borderColor) extend_rect.style.stroke = borderColor;
     extend_rect.style.cursor = "pointer";
     if (backgroundColor) extend_rect.style.fill = backgroundColor;
+    extend_rect.style.strokeWidth = String(strokeWidth);
     extend_rect.setAttribute("x", String(relative.left + extendSize.name.x));
     extend_rect.setAttribute("y", String(relative.top + extendSize.name.y));
     extend_rect.setAttribute("width", String(extendSize.name.width));
@@ -751,6 +782,7 @@ Z`,
     name: string,
     borderColor: string | undefined,
     backgroundColor: string | undefined,
+    strokeWidth: number,
     textColor: string | undefined,
     fontFamily: string | undefined,
     fontSize: number,
@@ -765,10 +797,13 @@ Z`,
     node_rect.setAttribute("height", String(size.name.height));
     node_rect.setAttribute("rx", String(radius));
     node_rect.setAttribute("ry", String(radius));
-    if (borderColor) node_rect.style.color = borderColor;
+    // node_rect.style.color = 'none';
+    if (borderColor) node_rect.style.stroke = borderColor;
     if (backgroundColor) node_rect.style.fill = backgroundColor;
     node_rect.style.boxSizing = "border-box";
     node_rect.style.cursor = "pointer";
+    node_rect.style.strokeWidth = String(strokeWidth);
+    // node_rect.style.vectorEffect = "non-scaling-stroke";
     node_rect.setAttribute("svg-uuid", String(uuid));
 
     node_text.textContent = name;
@@ -798,7 +833,7 @@ Z`,
     }
 
     ref_.setAttribute("enable-background", "true");
-    ref_.style.fill = "none";
+    // ref_.style.fill = "none";
     ref_.setAttribute("svg-key", key?.toString() ?? "");
     // ref_.setAttribute("svg-uuid", uuid.toString());
 
@@ -810,14 +845,15 @@ Z`,
   private static setup<T extends Data<Key> & Children<T>, Key extends string | number | symbol = "path">(
     {
       radius,
-      outColor,
-      outSelfFill,
       outSelfShape,
-      inChildrenShape,
+      outSelfFill,
       inChildrenFill,
+      inChildrenShape,
       dashArray,
+      linkColor,
       shadowColor,
       borderColor,
+      strokeWidth,
       backgroundColor,
       textColor,
       padding,
@@ -875,7 +911,7 @@ Z`,
     let outOffset = 0;
     if (outSelfShape && out_shape) {
       const outShape = TreeNode.computeOutShape(outSelfShape, shape, rectPosition, rectPosition.x + rectPosition.width / 2, margin, vertical);
-      TreeNode.setupOutShape(out_shape, outSelfFill, outColor, outShape[0], uuid);
+      TreeNode.setupOutShape(out_shape, outSelfFill, linkColor, outShape[0], uuid);
       outOffset = outShape[1];
     }
     const relatives = TreeNode.computeChildrenRelatives(
@@ -897,7 +933,7 @@ Z`,
       const inChildFill = inChildrenFill?.[index];
 
       const relative = relatives[0][index];
-      TreeNode.setupChild([path, inShape, child], inChildFill, outColor, dashArray, relative, uuid);
+      TreeNode.setupChild([path, inShape, child], inChildFill, linkColor, strokeWidth, dashArray, relative, uuid);
     }
 
     if (shadow) {
@@ -907,7 +943,22 @@ Z`,
     if (extend && extensible) {
       const relative = relatives[1];
 
-      TreeNode.setupExtend(extend, borderColor, backgroundColor, outColor, textColor, fontFamily, fontSize, fontWeight, relative, extendSize, extendPosition, radius, uuid);
+      TreeNode.setupExtend(
+        extend,
+        borderColor,
+        linkColor,
+        backgroundColor,
+        strokeWidth,
+        textColor,
+        fontFamily,
+        fontSize,
+        fontWeight,
+        relative,
+        extendSize,
+        extendPosition,
+        radius,
+        uuid,
+      );
     }
 
     const size = {
@@ -916,7 +967,7 @@ Z`,
     };
     const text = TreeNode.computeTextPosition(size.name, margin, padding, textSize);
 
-    TreeNode.setupSelf(node, size, text, name, borderColor, backgroundColor, textColor, fontFamily, fontSize, fontWeight, radius, uuid);
+    TreeNode.setupSelf(node, size, text, name, borderColor, backgroundColor, strokeWidth, textColor, fontFamily, fontSize, fontWeight, radius, uuid);
 
     TreeNode.setupRoot(ref, key, size, active, hasActive);
 
