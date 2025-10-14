@@ -167,7 +167,7 @@ export const defaultDarkColorOptions: Readonly<ColorOptions> = {
   linkHoverColor: "darkcyan",
   linkActiveColor: "darkred",
   backgroundColor: "darkgray",
-  shadowColor: "black",
+  shadowColor: "dimgray",
   textColor: "white",
   textHoverColor: "cyan",
   textActiveColor: "cyan",
