@@ -98,8 +98,8 @@ export interface LayoutOptions {
   marginX: number;
   paddingY: number;
   paddingX: number;
-  notePaddingRect: number,
-  notePaddingLink: number,
+  notePaddingRect: number;
+  notePaddingLink: number;
   radius: number;
 }
 export interface FontOptions {
