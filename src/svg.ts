@@ -300,13 +300,15 @@ export class TreeNode<T extends Data<Key> & Children<T>, Key extends string | nu
   private manager: Manager<T, Key>;
 
   private ref_: SVGSVGElement;
-  private node: Node;
+
   private shadow: SVGRectElement | null;
+  private node: Node;
   private out_shape: SVGPathElement | null;
   private out_text: [SVGTextElement | null, SVGTextElement | null] | null;
   private children_: Child<T, Key>[];
-  private parent_?: WeakRef<TreeNode<T, Key>>;
   private extend: Extend | null;
+
+  private parent_?: WeakRef<TreeNode<T, Key>>;
 
   private static computeCtxFont(fontFamily: string | undefined, fontSize: number, fontWeight: number): string {
     return `${fontWeight} ${fontSize}px ${fontFamily}`;
@@ -704,7 +706,7 @@ Z`,
 
   private static setupShadow(shadow: SVGRectElement, radius: number, rectPosition: Rectangle, shadowColor: string | undefined, uuid: UUID) {
     shadow.classList.add("shadow");
-    if (shadowColor) shadow.style.fill = shadowColor;
+    shadow.style.fill = shadowColor ?? "";
     shadow.setAttribute("x", String(rectPosition.x + 4));
     shadow.setAttribute("y", String(rectPosition.y + 4));
     shadow.setAttribute("width", String(rectPosition.width));
@@ -719,7 +721,7 @@ Z`,
     out_shape.style.fill = outSelfFill ?? "transparent";
     out_shape.style.strokeLinejoin = "round";
     // out_shape.style.vectorEffect = "non-scaling-stroke";
-    if (linkColor) out_shape.style.stroke = linkColor;
+    out_shape.style.stroke = linkColor ?? "";
     out_shape.setAttribute("d", outPath);
     out_shape.setAttribute("svg-uuid", String(uuid));
     console.log(out_shape);
@@ -746,14 +748,13 @@ Z`,
   ) {
     text_element.textContent = text;
     text_element.classList.add("text", "note");
-    if (noteFamily) text_element.style.fontFamily = noteFamily;
+    text_element.style.fontFamily = noteFamily ?? "";
     text_element.style.fontSize = noteSize.toString();
     text_element.style.fontWeight = noteWeight.toString();
     text_element.style.userSelect = "none";
     text_element.style.fill = noteColor;
     const notePaddingX = vertical ? notePadding.rect : notePadding.link;
     const notePaddingY = vertical ? notePadding.link : notePadding.rect;
-    console.log({ notePadding, noteTextSize, notePaddingX, notePaddingY, text_element });
     // Positioning the note based on the basepoint and its size
     const dx = positive.x ? notePaddingX : -notePaddingX;
     const dy = positive.y ? notePaddingY : -notePaddingY;
@@ -804,8 +805,8 @@ Z`,
     path.classList.add("link");
     path.style.fill = "none";
     // path.style.vectorEffect = "non-scaling-stroke";
-    if (linkColor) path.style.stroke = linkColor;
-    if (dashArray) path.style.strokeDasharray = String(dashArray);
+    path.style.stroke = linkColor ?? "";
+    path.style.strokeDasharray = String(dashArray ?? "");
     path.style.strokeWidth = String(strokeWidth);
     // path.setAttribute("svg-uuid", String(uuid));
     // path.style.strokeLinejoin = "round";
@@ -829,7 +830,7 @@ Z`,
 
     if (inShape) {
       inShape.classList.add("link");
-      if (linkColor) inShape.style.stroke = linkColor;
+      inShape.style.stroke = linkColor ?? "";
       inShape.style.fill = inChildFill ?? "transparent";
       inShape.style.strokeLinejoin = "round";
       // inShape.style.vectorEffect = "non-scaling-stroke";
@@ -868,7 +869,7 @@ Z`,
   ) {
     extend_path.classList.add("link", "extend");
     extend_path.style.fill = "none";
-    if (linkColor) extend_path.style.stroke = linkColor;
+    extend_path.style.stroke = linkColor ?? "";
     extend_path.style.strokeLinejoin = "round";
     // extend_path.style.vectorEffect = "non-scaling-stroke";
     extend_path.style.strokeWidth = String(strokeWidth);
@@ -878,9 +879,9 @@ Z`,
     extend_rect.classList.add("rect", "extend");
     extend_rect.style.boxSizing = "border-box";
     extend_rect.style.fill = "none";
-    if (borderColor) extend_rect.style.stroke = borderColor;
+    extend_rect.style.stroke = borderColor ?? "";
     extend_rect.style.cursor = "pointer";
-    if (backgroundColor) extend_rect.style.fill = backgroundColor;
+    extend_rect.style.fill = backgroundColor ?? "";
     extend_rect.style.strokeWidth = String(strokeWidth);
     extend_rect.setAttribute("x", String(relative.left + extendSize.name.x));
     extend_rect.setAttribute("y", String(relative.top + extendSize.name.y));
@@ -894,7 +895,7 @@ Z`,
     extend_text.classList.add("text", "extend");
     extend_text.style.cursor = "pointer";
     extend_text.style.fill = textColor;
-    if (fontFamily) extend_text.style.fontFamily = fontFamily;
+    extend_text.style.fontFamily = fontFamily ?? "";
     extend_text.style.fontSize = fontSize.toString();
     extend_text.style.fontWeight = fontWeight.toString();
     extend_text.style.userSelect = "none";
@@ -926,8 +927,8 @@ Z`,
     node_rect.setAttribute("rx", String(radius));
     node_rect.setAttribute("ry", String(radius));
     // node_rect.style.color = 'none';
-    if (borderColor) node_rect.style.stroke = borderColor;
-    if (backgroundColor) node_rect.style.fill = backgroundColor;
+    node_rect.style.stroke = borderColor ?? "";
+    node_rect.style.fill = backgroundColor ?? "";
     node_rect.style.boxSizing = "border-box";
     node_rect.style.cursor = "pointer";
     node_rect.style.strokeWidth = String(strokeWidth);
@@ -940,7 +941,7 @@ Z`,
     node_text.setAttribute("y", String(text.y));
     node_text.style.fill = textColor;
     node_text.style.userSelect = "none";
-    if (fontFamily) node_text.style.fontFamily = fontFamily;
+    node_text.style.fontFamily = fontFamily ?? "";
     node_text.style.fontSize = String(fontSize);
     node_text.style.fontWeight = String(fontWeight);
     node_text.style.cursor = "pointer";
@@ -1201,7 +1202,6 @@ Z`,
 
     if (collapsed) {
       this.children_ = [];
-      this.extend = null;
       children_nodes = [];
     } else {
       const self = this;
@@ -1354,31 +1354,26 @@ Z`,
       this.shadow = null;
     }
 
-    if (this.extend === null && !collapsed && this.extensible) {
-      const extend_path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-      const extend_rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
-      const extend_text = document.createElementNS("http://www.w3.org/2000/svg", "text");
-
-      this.ref_.appendChild(extend_path);
-      this.ref_.appendChild(extend_rect);
-      this.ref_.appendChild(extend_text);
-
-      this.extend = [extend_path, extend_rect, extend_text];
-    } else if (this.extend !== null && (collapsed || !this.extensible)) {
-      const [extend_path, extend_rect, extend_text] = this.extend;
-      this.ref_.removeChild(extend_path);
-      this.ref_.removeChild(extend_rect);
-      this.ref_.removeChild(extend_text);
-      this.extend = null;
-    }
-
     if (this.out_shape === null && !collapsed && this.outSelfShape) {
       const out_shape = document.createElementNS("http://www.w3.org/2000/svg", "path");
-      this.ref_.insertBefore(out_shape, this.node[0]);
+      this.node[1].after(out_shape);
       this.out_shape = out_shape;
     } else if (this.out_shape !== null && (collapsed || !this.outSelfShape)) {
       this.ref_.removeChild(this.out_shape);
       this.out_shape = null;
+    }
+
+    if (this.out_text === null && !collapsed && this.outSelfText) {
+      const out_text1 = this.outSelfText[0] ? document.createElementNS("http://www.w3.org/2000/svg", "text") : null;
+      const out_text2 = this.outSelfText[1] ? document.createElementNS("http://www.w3.org/2000/svg", "text") : null;
+      this.out_text = [out_text1, out_text2];
+      if (out_text2) this.node[0].after(out_text2);
+      if (out_text1) this.node[0].after(out_text1);
+    } else if (this.out_text !== null && (collapsed || !this.outSelfText)) {
+      const [out_text1, out_text2] = this.out_text;
+      if (out_text1) this.ref_.removeChild(out_text1);
+      if (out_text2) this.ref_.removeChild(out_text2);
+      this.out_text = null;
     }
 
     const children = this.collapsed ? [] : typeof data.children === "function" ? (data.children = data.children(data)) : data.children;
@@ -1419,7 +1414,7 @@ Z`,
           child[3] = null;
         } else if (inChildShape && !child[3]) {
           const shape = document.createElementNS("http://www.w3.org/2000/svg", "path");
-          this.ref_.insertBefore(shape, child[0]);
+          child[0].after(shape);
           child[3] = shape;
         }
 
@@ -1481,6 +1476,22 @@ Z`,
         this.ref_.removeChild(child.ref_);
       }
       this.children_ = [];
+    }
+
+    if (this.extend === null && !collapsed && this.extensible) {
+      const extend_path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+      const extend_rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+      const extend_text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+
+      this.ref_.append(extend_path, extend_rect, extend_text);
+
+      this.extend = [extend_path, extend_rect, extend_text];
+    } else if (this.extend !== null && (collapsed || !this.extensible)) {
+      const [extend_path, extend_rect, extend_text] = this.extend;
+      this.ref_.removeChild(extend_path);
+      this.ref_.removeChild(extend_rect);
+      this.ref_.removeChild(extend_text);
+      this.extend = null;
     }
 
     const skeletonChanged = this.recomputeStyle();
