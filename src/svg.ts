@@ -17,6 +17,8 @@ import {
   ColorOptions,
   mergeShapeOptions,
   Children,
+  NotePadding,
+  ShapeSize,
 } from "./types";
 
 type UUID = number;
@@ -32,6 +34,9 @@ class NodeBase<T extends Data<Key>, Key extends string | number | symbol = "path
 
   private key_: string | number | undefined;
 
+  /**
+   * Whether the layout (the way children nodes are arranged) is vertical (top-down) or horizontal (left-right).
+   */
   private vertical_: boolean;
   private collapsed_: boolean;
   private active_: boolean;
@@ -126,7 +131,7 @@ class NodeBase<T extends Data<Key>, Key extends string | number | symbol = "path
         ? (this.options?.stroke?.strokeHoverWidth ?? defaultOptions.stroke.strokeHoverWidth)
         : (this.options?.stroke?.strokeWidth ?? defaultOptions.stroke.strokeWidth);
   }
-  protected get textColor(): string | undefined {
+  protected get textColor(): string {
     return (
       this.data_?.textColor ??
       (this.active
@@ -135,6 +140,9 @@ class NodeBase<T extends Data<Key>, Key extends string | number | symbol = "path
           ? (this.options?.color?.textHoverColor ?? defaultOptions.color.textHoverColor)
           : (this.options?.color?.textColor ?? defaultOptions.color.textColor))
     );
+  }
+  protected get noteColor(): string {
+    return this.textColor;
   }
   protected get backgroundColor(): string | undefined {
     return this.data_?.backgroundColor ?? this.options?.color?.backgroundColor ?? defaultOptions.color.backgroundColor;
@@ -148,6 +156,18 @@ class NodeBase<T extends Data<Key>, Key extends string | number | symbol = "path
   protected get outSelfFill(): string | undefined {
     return this.data_.outSelfFill;
   }
+  protected get outSelfText(): [string | undefined, string | undefined] | undefined {
+    return this.data_.outSelfText;
+  }
+
+  protected shapeSize(shape: Shape | undefined): ShapeSize | undefined {
+    if (!shape) return undefined;
+    const width = this.options?.shape?.[shape]?.width ?? defaultOptions.shape[shape].width;
+    const length = this.options?.shape?.[shape]?.length ?? defaultOptions.shape[shape].length;
+    return { width, length };
+  }
+  protected get outSelfShapeSize(): ShapeSize | undefined {
+    return this.shapeSize(this.outSelfShape);
   }
   protected get linkColor(): string | undefined {
     return (
@@ -164,6 +184,12 @@ class NodeBase<T extends Data<Key>, Key extends string | number | symbol = "path
   }
   protected get inChildrenFill(): (string | undefined)[] | undefined {
     return this.data_.inChildrenFill;
+  }
+  protected get inChildrenText(): ([string | undefined, string | undefined] | undefined)[] | undefined {
+    return this.data_.inChildrenText;
+  }
+  protected get inChildrenShapeSize(): (ShapeSize | undefined)[] | undefined {
+    return this.inChildrenShape?.map((shape) => this.shapeSize(shape));
   }
   protected get shadowColor(): string | undefined {
     return this.options?.color?.shadowColor ?? defaultOptions.color.shadowColor;
@@ -186,6 +212,15 @@ class NodeBase<T extends Data<Key>, Key extends string | number | symbol = "path
   protected get fontFamily(): string | undefined {
     return this.options?.font?.fontFamily ?? defaultOptions.font.fontFamily;
   }
+  protected get noteWeight(): number {
+    return this.options?.text?.noteWeight ?? defaultOptions.text.noteWeight;
+  }
+  protected get noteSize(): number {
+    return this.options?.font?.noteSize ?? defaultOptions.font.noteSize;
+  }
+  protected get noteFamily(): string | undefined {
+    return this.options?.font?.noteFamily ?? defaultOptions.font.noteFamily;
+  }
 
   protected get padding(): Position {
     return {
@@ -203,6 +238,12 @@ class NodeBase<T extends Data<Key>, Key extends string | number | symbol = "path
     return {
       x: this.options?.layout?.marginX ?? defaultOptions.layout.marginX,
       y: this.options?.layout?.marginY ?? defaultOptions.layout.marginY,
+    };
+  }
+  protected get notePadding(): NotePadding {
+    return {
+      rect: this.options?.layout?.notePaddingRect ?? defaultOptions.layout.notePaddingRect,
+      link: this.options?.layout?.notePaddingLink ?? defaultOptions.layout.notePaddingLink,
     };
   }
 
@@ -239,7 +280,13 @@ class NodeBase<T extends Data<Key>, Key extends string | number | symbol = "path
 }
 
 type Node = [SVGRectElement, SVGTextElement];
-type Child<T extends Data<Key> & Children<T>, Key extends string | number | symbol = "path"> = [SVGPathElement, SVGPathElement | null, TreeNode<T, Key>];
+type Child<T extends Data<Key> & Children<T>, Key extends string | number | symbol = "path"> = [
+  SVGPathElement,
+  SVGTextElement | null,
+  SVGTextElement | null,
+  SVGPathElement | null,
+  TreeNode<T, Key>,
+];
 type Extend = [SVGPathElement, SVGRectElement, SVGTextElement];
 
 /**
@@ -256,6 +303,7 @@ export class TreeNode<T extends Data<Key> & Children<T>, Key extends string | nu
   private node: Node;
   private shadow: SVGRectElement | null;
   private out_shape: SVGPathElement | null;
+  private out_text: [SVGTextElement | null, SVGTextElement | null] | null;
   private children_: Child<T, Key>[];
   private parent_?: WeakRef<TreeNode<T, Key>>;
   private extend: Extend | null;
@@ -265,15 +313,22 @@ export class TreeNode<T extends Data<Key> & Children<T>, Key extends string | nu
   }
 
   /**
-   * Compute the size of the text using the provided canvas context and font settings.
+   * Compute the size of the text (or extend mark or note) using the provided canvas context and font settings.
    */
   private static computeTextSize(ctx: OffscreenCanvasRenderingContext2D, text: string, ctxFont: string): TextSize {
     ctx.font = ctxFont;
+    ctx.textBaseline = "alphabetic";
     const metrics = ctx.measureText(text);
     const width = metrics.width;
     const height = metrics.fontBoundingBoxAscent + metrics.fontBoundingBoxDescent;
     const baselineOffsetY = metrics.fontBoundingBoxAscent;
     return { width, height, baselineOffsetY };
+  }
+
+  private static computeNotePadding(notePadding: NotePadding, shapeSize: ShapeSize | undefined, near_rect: boolean): NotePadding {
+    const rect = near_rect ? notePadding.rect : notePadding.rect + (shapeSize?.length ?? 0);
+    const link = near_rect ? notePadding.link + (shapeSize?.width ?? 0) / 2 : notePadding.link;
+    return { rect, link };
   }
 
   /**
@@ -283,18 +338,6 @@ export class TreeNode<T extends Data<Key> & Children<T>, Key extends string | nu
     const width = textSize.width + padding.x * 2;
     const height = textSize.height + padding.y * 2;
     return { width, height };
-  }
-
-  /**
-   * Compute the size of the extend mark using the provided canvas context and font settings.
-   */
-  private static computeExtendTextSize(ctx: OffscreenCanvasRenderingContext2D, text: string, ctxFont: string): TextSize {
-    ctx.font = ctxFont;
-    const metrics = ctx.measureText(text);
-    const width = metrics.width;
-    const height = metrics.fontBoundingBoxAscent + metrics.fontBoundingBoxDescent;
-    const baselineOffsetY = metrics.fontBoundingBoxAscent;
-    return { width, height, baselineOffsetY };
   }
 
   /**
@@ -682,12 +725,79 @@ Z`,
     console.log(out_shape);
   }
 
+  /**
+   * Setup the note element.
+   * @param positive Whether the note is positioned positively (to the bottom or to the right) relative to the basepoint.
+   * @param vertical Whether the note is top/bottom (true) or left/right (false) of the basepoint.
+   */
+  private static setupNote(
+    text_element: SVGTextElement,
+    text: string,
+    position: Position,
+    noteTextSize: TextSize,
+    noteSize: number,
+    noteFamily: string | undefined,
+    noteWeight: number,
+    notePadding: NotePadding,
+    noteColor: string,
+    positive: { x: boolean; y: boolean },
+    vertical: boolean,
+    uuid: UUID,
+  ) {
+    text_element.textContent = text;
+    text_element.classList.add("text", "note");
+    if (noteFamily) text_element.style.fontFamily = noteFamily;
+    text_element.style.fontSize = noteSize.toString();
+    text_element.style.fontWeight = noteWeight.toString();
+    text_element.style.userSelect = "none";
+    text_element.style.fill = noteColor;
+    const notePaddingX = vertical ? notePadding.rect : notePadding.link;
+    const notePaddingY = vertical ? notePadding.link : notePadding.rect;
+    console.log({ notePadding, noteTextSize, notePaddingX, notePaddingY, text_element });
+    // Positioning the note based on the basepoint and its size
+    const dx = positive.x ? notePaddingX : -notePaddingX;
+    const dy = positive.y ? notePaddingY : -notePaddingY;
+    const x = position.x + dx;
+    const y = position.y + dy;
+    text_element.setAttribute("text-anchor", positive.x ? "start" : "end");
+    text_element.setAttribute("alignment-baseline", positive.y ? "hanging" : "baseline");
+    text_element.setAttribute("x", String(x));
+    text_element.setAttribute("y", String(y));
+    // out_shape.style.vectorEffect = "non-scaling-stroke";
+    text_element.setAttribute("svg-uuid", String(uuid));
+  }
+
+  private static setupOutText(
+    out_text: SVGTextElement,
+    text: string,
+    rect: Rectangle,
+    noteTextSize: TextSize,
+    noteSize: number,
+    noteFamily: string | undefined,
+    noteWeight: number,
+    notePadding: NotePadding,
+    noteColor: string,
+    positive: boolean,
+    uuid: UUID,
+  ) {
+    const basepoint = { x: rect.x + rect.width / 2, y: rect.y + rect.height };
+    this.setupNote(out_text, text, basepoint, noteTextSize, noteSize, noteFamily, noteWeight, notePadding, noteColor, { x: !positive, y: true }, false, uuid);
+  }
+
   private static setupChild<T extends Data<Key> & Children<T>, Key extends string | number | symbol = "path">(
-    [path, inShape, child]: Child<T, Key>,
+    [path, inText1, inText2, inShape, child]: Child<T, Key>,
     inChildFill: string | undefined,
+    inChildText: [string | undefined, string | undefined] | undefined,
+    inChildShapeSize: ShapeSize | undefined,
+    noteColor: string,
+    noteSize: number,
+    noteFamily: string | undefined,
+    noteWeight: number,
+    notePadding: NotePadding,
     linkColor: string | undefined,
     strokeWidth: number,
     dashArray: string | number | undefined,
+    vertical: boolean,
     relative: Relative,
     uuid: UUID,
   ) {
@@ -697,7 +807,25 @@ Z`,
     if (linkColor) path.style.stroke = linkColor;
     if (dashArray) path.style.strokeDasharray = String(dashArray);
     path.style.strokeWidth = String(strokeWidth);
+    // path.setAttribute("svg-uuid", String(uuid));
     // path.style.strokeLinejoin = "round";
+
+    const basepoint = vertical
+      ? { x: relative.left + child.size.name.x, y: relative.top + child.size.name.y + child.size.name.height / 2 }
+      : { x: relative.left + child.size.name.x + child.size.name.width / 2, y: relative.top + child.size.name.y };
+
+    const noteFont = TreeNode.computeCtxFont(noteFamily, noteSize, noteWeight);
+    const correctedNotePadding = this.computeNotePadding(notePadding, inChildShapeSize, !vertical);
+    if (inText1 && inChildText?.[0]) {
+      const noteSize1 = TreeNode.computeTextSize(child.ctx, inChildText[0], noteFont);
+      const positive = { x: false, y: false };
+      this.setupNote(inText1, inChildText[0], basepoint, noteSize1, noteSize, noteFamily, noteWeight, correctedNotePadding, noteColor, positive, vertical, child.uuid);
+    }
+    if (inText2 && inChildText?.[1]) {
+      const noteSize2 = TreeNode.computeTextSize(child.ctx, inChildText[1], noteFont);
+      const positive = { x: !vertical, y: vertical };
+      this.setupNote(inText2, inChildText[1], basepoint, noteSize2, noteSize, noteFamily, noteWeight, correctedNotePadding, noteColor, positive, vertical, child.uuid);
+    }
 
     if (inShape) {
       inShape.classList.add("link");
@@ -709,13 +837,13 @@ Z`,
     }
 
     path.setAttribute("d", relative.link);
-    path.setAttribute("svg-uuid", String(uuid));
+    // path.setAttribute("svg-uuid", String(uuid));
 
     if (inShape) {
       if (relative.in) {
         inShape.setAttribute("d", relative.in);
       }
-      inShape.setAttribute("svg-uuid", String(uuid));
+      // inShape.setAttribute("svg-uuid", String(child.uuid));
     }
 
     child.ref_.setAttribute("x", String(relative.left));
@@ -728,7 +856,7 @@ Z`,
     linkColor: string | undefined,
     backgroundColor: string | undefined,
     strokeWidth: number,
-    textColor: string | undefined,
+    textColor: string,
     fontFamily: string | undefined,
     fontSize: number,
     fontWeight: number,
@@ -745,7 +873,7 @@ Z`,
     // extend_path.style.vectorEffect = "non-scaling-stroke";
     extend_path.style.strokeWidth = String(strokeWidth);
     extend_path.setAttribute("d", relative.link);
-    extend_path.setAttribute("svg-uuid", String(uuid));
+    // extend_path.setAttribute("svg-uuid", String(uuid));
 
     extend_rect.classList.add("rect", "extend");
     extend_rect.style.boxSizing = "border-box";
@@ -765,7 +893,7 @@ Z`,
     extend_text.textContent = TreeNode.extendTextContent;
     extend_text.classList.add("text", "extend");
     extend_text.style.cursor = "pointer";
-    if (textColor) extend_text.style.fill = textColor;
+    extend_text.style.fill = textColor;
     if (fontFamily) extend_text.style.fontFamily = fontFamily;
     extend_text.style.fontSize = fontSize.toString();
     extend_text.style.fontWeight = fontWeight.toString();
@@ -783,7 +911,7 @@ Z`,
     borderColor: string | undefined,
     backgroundColor: string | undefined,
     strokeWidth: number,
-    textColor: string | undefined,
+    textColor: string,
     fontFamily: string | undefined,
     fontSize: number,
     fontWeight: number,
@@ -810,7 +938,7 @@ Z`,
     node_text.classList.add("node", "text");
     node_text.setAttribute("x", String(text.x));
     node_text.setAttribute("y", String(text.y));
-    if (textColor) node_text.style.fill = textColor;
+    node_text.style.fill = textColor;
     node_text.style.userSelect = "none";
     if (fontFamily) node_text.style.fontFamily = fontFamily;
     node_text.style.fontSize = String(fontSize);
@@ -847,22 +975,31 @@ Z`,
       radius,
       outSelfShape,
       outSelfFill,
+      outSelfText,
+      outSelfShapeSize,
       inChildrenFill,
       inChildrenShape,
+      inChildrenShapeSize,
+      inChildrenText,
       dashArray,
       linkColor,
       shadowColor,
       borderColor,
+      noteColor,
       strokeWidth,
       backgroundColor,
       textColor,
       padding,
       indent,
       margin,
+      notePadding,
       shape,
       fontSize,
       fontWeight,
       fontFamily,
+      noteSize,
+      noteWeight,
+      noteFamily,
     }: TreeNode<T, Key>,
     ctx: OffscreenCanvasRenderingContext2D,
     name: string,
@@ -870,6 +1007,7 @@ Z`,
     node: Node,
     shadow: SVGRectElement | null,
     out_shape: SVGPathElement | null,
+    out_text: [SVGTextElement | null, SVGTextElement | null] | null,
     children: Child<T, Key>[],
     extend: Extend | null,
     key: string | number | undefined,
@@ -878,19 +1016,19 @@ Z`,
     collapsed: boolean,
     active: boolean,
     hasActive: boolean,
-    uuid: number,
+    uuid: UUID,
   ): [TreeNodeSize, Position] {
     const ctxFont = TreeNode.computeCtxFont(fontFamily, fontSize, fontWeight);
     const textSize = TreeNode.computeTextSize(ctx, name, ctxFont);
     const rectSize = TreeNode.computeRectSize(textSize, padding);
-    const extendTextSize = TreeNode.computeExtendTextSize(ctx, TreeNode.extendTextContent, ctxFont);
+    const extendTextSize = TreeNode.computeTextSize(ctx, TreeNode.extendTextContent, ctxFont);
     const extendRectSize = TreeNode.computeExtendRectSize(extendTextSize, padding);
     const extendSize = TreeNode.computeExtendSize(extendRectSize, margin);
     const boundingSize = TreeNode.computeSize(
       rectSize,
       indent,
       margin,
-      children.map((c) => c[2].size.bounding),
+      children.map((c) => c[4].size.bounding),
       extendSize.bounding,
       extensible,
       collapsed,
@@ -898,7 +1036,7 @@ Z`,
     );
     const extendPosition = TreeNode.computeTextPosition(extendSize.name, margin, padding, extendTextSize);
     const rectPosition = TreeNode.computeRectPosition(
-      children.map((c) => c[2].size),
+      children.map((c) => c[4].size),
       extendSize,
       extensible,
       boundingSize,
@@ -914,6 +1052,20 @@ Z`,
       TreeNode.setupOutShape(out_shape, outSelfFill, linkColor, outShape[0], uuid);
       outOffset = outShape[1];
     }
+    if (outSelfText && out_text) {
+      const ctxNoteFont = TreeNode.computeCtxFont(noteFamily, noteSize, noteWeight);
+      const correctedNotePadding = TreeNode.computeNotePadding(notePadding, outSelfShapeSize, true);
+      const [outSelfText1, outSelfText2] = outSelfText;
+      const [out_text1, out_text2] = out_text;
+      if (outSelfText1 && out_text1) {
+        const noteTextSize = TreeNode.computeTextSize(ctx, outSelfText1, ctxNoteFont);
+        TreeNode.setupOutText(out_text1, outSelfText1, rectPosition, noteTextSize, noteSize, noteFamily, noteWeight, correctedNotePadding, noteColor, true, uuid);
+      }
+      if (outSelfText2 && out_text2) {
+        const noteTextSize = TreeNode.computeTextSize(ctx, outSelfText2, ctxNoteFont);
+        TreeNode.setupOutText(out_text2, outSelfText2, rectPosition, noteTextSize, noteSize, noteFamily, noteWeight, correctedNotePadding, noteColor, false, uuid);
+      }
+    }
     const relatives = TreeNode.computeChildrenRelatives(
       radius,
       shape,
@@ -922,18 +1074,36 @@ Z`,
       indent,
       margin,
       outOffset,
-      children.map((c) => c[2].size),
+      children.map((c) => c[4].size),
       inChildrenShape,
       extendSize,
       extensible,
       vertical,
     );
 
-    for (const [index, [path, inShape, child]] of children.entries()) {
+    for (const [index, [path, inText1, inText2, inShape, child]] of children.entries()) {
       const inChildFill = inChildrenFill?.[index];
+      const inChildText = inChildrenText?.[index];
+      const inChildShapeSize = inChildrenShapeSize?.[index];
 
       const relative = relatives[0][index];
-      TreeNode.setupChild([path, inShape, child], inChildFill, linkColor, strokeWidth, dashArray, relative, uuid);
+      TreeNode.setupChild(
+        [path, inText1, inText2, inShape, child],
+        inChildFill,
+        inChildText,
+        inChildShapeSize,
+        noteColor,
+        noteSize,
+        noteFamily,
+        noteWeight,
+        notePadding,
+        linkColor,
+        strokeWidth,
+        dashArray,
+        vertical,
+        relative,
+        uuid,
+      );
     }
 
     if (shadow) {
@@ -1017,6 +1187,16 @@ Z`,
       this.out_shape = null;
     }
 
+    let out_text: [SVGTextElement | null, SVGTextElement | null] | null = null;
+    if (!collapsed && this.outSelfText) {
+      const out_text1 = this.outSelfText[0] ? document.createElementNS("http://www.w3.org/2000/svg", "text") : null;
+      const out_text2 = this.outSelfText[1] ? document.createElementNS("http://www.w3.org/2000/svg", "text") : null;
+      out_text = [out_text1, out_text2];
+      if (out_text1) children_elements.push(out_text1);
+      if (out_text2) children_elements.push(out_text2);
+    }
+    this.out_text = out_text;
+
     let children_nodes: T[];
 
     if (collapsed) {
@@ -1034,17 +1214,29 @@ Z`,
 
         const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
 
+        let inText = self.inChildrenText?.[index];
+        let inText1: SVGTextElement | null = null;
+        let inText2: SVGTextElement | null = null;
+        if (inText?.[0]) {
+          inText1 = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        }
+        if (inText?.[1]) {
+          inText2 = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        }
+
         let inShape: SVGPathElement | null = null;
         const inChildShape = self.inChildrenShape?.[index];
         if (inChildShape) {
           inShape = document.createElementNS("http://www.w3.org/2000/svg", "path");
         }
 
-        return [path, inShape, child];
+        return [path, inText1, inText2, inShape, child];
       }, this);
       this.children_ = children;
-      for (const [path, inShape, child] of children) {
+      for (const [path, inText1, inText2, inShape, child] of children) {
         children_elements.push(path);
+        if (inText1) children_elements.push(inText1);
+        if (inText2) children_elements.push(inText2);
         if (inShape) children_elements.push(inShape);
         children_elements.push(child.ref_);
       }
@@ -1074,6 +1266,7 @@ Z`,
       this.node,
       this.shadow,
       this.out_shape,
+      this.out_text,
       this.children_,
       this.extend,
       this.key,
@@ -1124,6 +1317,7 @@ Z`,
       this.node,
       this.shadow,
       this.out_shape,
+      this.out_text,
       this.children_,
       this.extend,
       this.key,
@@ -1193,16 +1387,43 @@ Z`,
       const minLength = Math.min(this.children_.length, children.length);
       for (let i = 0; i < minLength; i++) {
         const child = this.children_[i];
-        let inChildShape = this.inChildrenShape?.[i];
-        if (!this.inChildrenShape && child[1]) {
-          this.ref_.removeChild(child[1]);
+
+        let inChildText = this.inChildrenText?.[i];
+        if (!inChildText && (child[1] || child[2])) {
+          if (child[1]) this.ref_.removeChild(child[1]);
+          if (child[2]) this.ref_.removeChild(child[2]);
           child[1] = null;
-        } else if (inChildShape && !child[1]) {
+          child[2] = null;
+        } else if (inChildText) {
+          if (inChildText[0] && !child[1]) {
+            const text1 = document.createElementNS("http://www.w3.org/2000/svg", "text");
+            child[0].after(text1);
+            child[1] = text1;
+          } else if (!inChildText[0] && child[1]) {
+            this.ref_.removeChild(child[1]);
+            child[1] = null;
+          }
+          if (inChildText[1] && !child[2]) {
+            const text2 = document.createElementNS("http://www.w3.org/2000/svg", "text");
+            (child[3] ?? child[4].ref_).before(text2);
+            child[2] = text2;
+          } else if (!inChildText[1] && child[2]) {
+            this.ref_.removeChild(child[2]);
+            child[2] = null;
+          }
+        }
+
+        let inChildShape = this.inChildrenShape?.[i];
+        if (!this.inChildrenShape && child[3]) {
+          this.ref_.removeChild(child[3]);
+          child[3] = null;
+        } else if (inChildShape && !child[3]) {
           const shape = document.createElementNS("http://www.w3.org/2000/svg", "path");
           this.ref_.insertBefore(shape, child[0]);
-          child[1] = shape;
+          child[3] = shape;
         }
-        this.children_[i][2].fullUpdate(children[i], keyProp, options, ctx);
+
+        this.children_[i][4].fullUpdate(children[i], keyProp, options, ctx);
       }
       if (children.length > this.children_.length) {
         // Add new children
@@ -1212,25 +1433,39 @@ Z`,
 
           const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
 
+          let inText = self.inChildrenText?.[self.children_.length + index];
+          let inText1: SVGTextElement | null = null;
+          let inText2: SVGTextElement | null = null;
+          if (inText?.[0]) {
+            inText1 = document.createElementNS("http://www.w3.org/2000/svg", "text");
+          }
+          if (inText?.[1]) {
+            inText2 = document.createElementNS("http://www.w3.org/2000/svg", "text");
+          }
+
           let inShape: SVGPathElement | null = null;
           const inChildShape = self.inChildrenShape?.[self.children_.length + index];
           if (inChildShape) {
             inShape = document.createElementNS("http://www.w3.org/2000/svg", "path");
           }
 
-          return [path, inShape, child];
+          return [path, inText1, inText2, inShape, child];
         }, this);
         this.children_.push(...newChildren);
-        for (const [path, inShape, child] of newChildren) {
+        for (const [path, inText1, inText2, inShape, child] of newChildren) {
           this.ref_.appendChild(path);
+          if (inText1) this.ref_.appendChild(inText1);
+          if (inText2) this.ref_.appendChild(inText2);
           if (inShape) this.ref_.appendChild(inShape);
           this.ref_.appendChild(child.ref_);
         }
       } else if (children.length < this.children_.length) {
         // Remove excess children
         const toRemove = this.children_.slice(children.length);
-        for (const [path, inShape, child] of toRemove) {
+        for (const [path, inText1, inText2, inShape, child] of toRemove) {
           this.ref_.removeChild(path);
+          if (inText1) this.ref_.removeChild(inText1);
+          if (inText2) this.ref_.removeChild(inText2);
           if (inShape) this.ref_.removeChild(inShape);
           this.ref_.removeChild(child.ref_);
         }
@@ -1238,8 +1473,10 @@ Z`,
       }
     } else {
       // If now collapsed, remove all children from DOM
-      for (const [path, inShape, child] of this.children_) {
+      for (const [path, inText1, inText2, inShape, child] of this.children_) {
         this.ref_.removeChild(path);
+        if (inText1) this.ref_.removeChild(inText1);
+        if (inText2) this.ref_.removeChild(inText2);
         if (inShape) this.ref_.removeChild(inShape);
         this.ref_.removeChild(child.ref_);
       }
@@ -1266,7 +1503,7 @@ Z`,
 
     super.reset(this.ctx, this.data_, this.options, this.keyProp, vertical, collapsed, active, hover);
 
-    for (const [, , child] of this.children_) {
+    for (const [, , , , child] of this.children_) {
       child.updateColor(options);
     }
 
@@ -1286,7 +1523,7 @@ Z`,
     return this.parent_?.deref();
   }
   get children(): TreeNode<T, Key>[] {
-    return this.children_.map((c) => c[2]);
+    return this.children_.map((c) => c[4]);
   }
   get prevSibling(): TreeNode<T, Key> | undefined {
     const parent = this.parent;
@@ -1408,7 +1645,7 @@ class Manager<T extends Data<Key> & Children<T>, Key extends string | number | s
     return this.current++;
   }
 
-  findNodeByUUID(uuid: number): TreeNode<T, Key> | undefined {
+  findNodeByUUID(uuid: UUID): TreeNode<T, Key> | undefined {
     return this.nodesByUUID.get(uuid)?.deref();
   }
   findNodesByKey(key: string | number | undefined): TreeNode<T, Key>[] {
@@ -1447,28 +1684,28 @@ interface EventMap<T extends Data<Key> & Children<T>, Key extends string | numbe
   active: {
     node: TreeNode<T, Key>[];
     key: string | number | undefined;
-    uuid: number[];
+    uuid: UUID[];
   };
-  click: { node?: TreeNode<T, Key>; originalEvent: MouseEvent; uuid?: number };
+  click: { node?: TreeNode<T, Key>; originalEvent: MouseEvent; uuid?: UUID };
   contextmenu: {
     node?: TreeNode<T, Key>;
     originalEvent: MouseEvent;
-    uuid?: number;
+    uuid?: UUID;
   };
   keydown: {
     node: TreeNode<T, Key>;
     originalEvent: KeyboardEvent;
-    uuid: number;
+    uuid: UUID;
   };
   mouseenter: {
     node: TreeNode<T, Key>;
     originalEvent: MouseEvent;
-    uuid: number;
+    uuid: UUID;
   };
   mouseleave: {
     node: TreeNode<T, Key>;
     originalEvent: MouseEvent;
-    uuid: number;
+    uuid: UUID;
   };
 }
 export type EventKind<K extends keyof EventMap<T, Key>, T extends Data<Key> & Children<T>, Key extends string | number | symbol = "path"> = EventMap<T, Key>[K];

@@ -59,6 +59,10 @@ export interface TextOptions {
    * Font weight of texts when active.
    */
   textActiveWeight: number;
+  /**
+   * Font weight of notes.
+   */
+  noteWeight: number;
 }
 export interface StrokeOptions {
   /**
@@ -79,10 +83,12 @@ export interface StrokeOptions {
  *
  * @member indentX - Horizontal indentation between parent and child nodes.
  * @member indentY - Vertical indentation between nodes.
- * @member marginY - Vertical margin around the tree.
  * @member marginX - Horizontal margin around the tree.
- * @member paddingY - Vertical padding between node text and its bounding box.
+ * @member marginY - Vertical margin around the tree.
  * @member paddingX - Horizontal padding between node text and its bounding box.
+ * @member paddingY - Vertical padding between node text and its bounding box.
+ * @member paddingX - Horizontal padding between note text and links or nearest boxes.
+ * @member paddingY - Vertical padding between note text and links or nearest boxes.
  * @member radius - Corner radius of the node's bounding box.
  */
 export interface LayoutOptions {
@@ -92,11 +98,15 @@ export interface LayoutOptions {
   marginX: number;
   paddingY: number;
   paddingX: number;
+  notePaddingRect: number,
+  notePaddingLink: number,
   radius: number;
 }
 export interface FontOptions {
   fontFamily?: string;
   fontSize: number;
+  noteFamily?: string;
+  noteSize: number;
 }
 export interface ShapeOptions {
   arrow: {
@@ -185,12 +195,15 @@ export const defaultLayoutOptions: Readonly<LayoutOptions> = {
   marginY: 15,
   paddingX: 12,
   paddingY: 8,
+  notePaddingRect: 1,
+  notePaddingLink: 1,
   radius: 4,
 };
 export const defaultTextOptions: Readonly<TextOptions> = {
   textWeight: 400,
   textHoverWeight: 700,
   textActiveWeight: 1000,
+  noteWeight: 400,
 };
 export const defaultStrokeOptions: Readonly<StrokeOptions> = {
   strokeWidth: 1,
@@ -200,6 +213,8 @@ export const defaultStrokeOptions: Readonly<StrokeOptions> = {
 export const defaultFontOptions: Readonly<FontOptions> = {
   fontFamily: undefined,
   fontSize: 14,
+  noteFamily: undefined,
+  noteSize: 10,
 };
 export const defaultShapeOptions: Readonly<ShapeOptions> = {
   arrow: {
@@ -310,11 +325,13 @@ export type Data<Key extends string | number | symbol = "path"> = {
    * You can also use 'currentColor' to use the current stroke color.
    */
   outSelfFill?: string;
+  outSelfText?: [string | undefined, string | undefined] | undefined;
   /**
    * @description The shape of the end points of links from this node to its children.
    */
   inChildrenShape?: (Shape | undefined)[];
   inChildrenFill?: (string | undefined)[];
+  inChildrenText?: ([string | undefined, string | undefined] | undefined)[];
   /**
    * @description Whether the node has an automatically generated extensible marker (after its children if any).
    */
@@ -332,9 +349,17 @@ export interface Size {
   width: number;
   height: number;
 }
+export interface ShapeSize {
+  width: number;
+  length: number;
+}
 export interface Position {
   x: number;
   y: number;
+}
+export interface NotePadding {
+  rect: number;
+  link: number;
 }
 export interface Relative {
   left: number;
@@ -351,6 +376,9 @@ export interface TreeNodeSize {
 export interface TextSize {
   width: number;
   height: number;
+  /**
+   * The offset from the top to the text baseline.
+   */
   baselineOffsetY: number;
 }
 
