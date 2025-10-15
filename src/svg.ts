@@ -1526,6 +1526,14 @@ Z`,
     }
   }
 
+  /**
+   * Remove this node from the tree and the DOM.
+   */
+  remove() {
+    this.manager.remove(this);
+    this.ref_.remove();
+  }
+
   get ref(): SVGSVGElement {
     return this.ref_;
   }
@@ -1856,9 +1864,12 @@ export class Tree<T extends Data<Key> & Children<T>, Key extends string | number
 }
 
 export class Forest<T extends Data<Key> & Children<T>, Key extends string | number | symbol = "path"> {
+  private data_: T[];
   private readonly roots_: TreeNode<T, Key>[];
   private options_: PartialOptions;
   private keyProp_: Key;
+  private ctx_: OffscreenCanvasRenderingContext2D;
+  private parentElement: HTMLElement | null = null;
   private readonly manager = new Manager<T, Key>();
   private readonly eventTarget = new EventTarget();
   private activeKey_: string | number | undefined = undefined;
@@ -1877,6 +1888,8 @@ export class Forest<T extends Data<Key> & Children<T>, Key extends string | numb
     this.roots_ = data.map((item) => TreeNode.create(item, keyProp, options_, ctx_, this.manager));
     this.options_ = options_;
     this.keyProp_ = keyProp;
+    this.data_ = data;
+    this.ctx_ = ctx_;
 
     for (const root of this.roots_) {
       for (const type of ["click", "contextmenu"] as const) {
@@ -1917,17 +1930,38 @@ export class Forest<T extends Data<Key> & Children<T>, Key extends string | numb
     }
   }
 
-  update(data?: T[], keyProp?: Key, options?: PartialOptions, ctx?: OffscreenCanvasRenderingContext2D) {
+  update(data_?: T[], keyProp_?: Key, options?: PartialOptions, ctx_?: OffscreenCanvasRenderingContext2D) {
     const options_ = options;
     this.options_ = options_;
-    if (data && data.length !== this.roots_.length) {
-      // Recreate all roots if the number of roots has changed
-      for (const root of this.roots_) {
-        root.ref.remove();
+    const data = data_ ?? this.data_;
+    this.data_ = data;
+    const ctx = ctx_ ?? this.ctx_;
+    const keyProp = keyProp_ ?? this.keyProp_;
+    this.keyProp_ = keyProp;
+
+    if (data.length < this.roots_.length) {
+      for (let i = data.length; i < this.roots_.length; i++) {
+        const root = this.roots_[i];
+        root.remove();
       }
-      this.roots_.length = 0;
-      for (const item of data) {
-        this.roots_.push(TreeNode.create<T, Key>(item, keyProp ?? this.keyProp_, options_, ctx ?? createContext(new OffscreenCanvas(0, 0)), this.manager));
+      this.roots_.splice(data.length);
+      for (let i = 0; i < data.length; i++) {
+        this.roots_[i].fullUpdate(data[i], keyProp, options_, ctx);
+      }
+    } else if (data.length > this.roots_.length) {
+      for (let i = 0; i < this.roots_.length; i++) {
+        this.roots_[i].fullUpdate(data[i], keyProp, options_, ctx);
+      }
+      const startIndex = this.roots_.length;
+      const self = this;
+      const newRoots = data.slice(startIndex).map((item) => TreeNode.create(item, keyProp, options_, ctx, self.manager));
+      this.roots_.push(...newRoots);
+      if (this.parentElement) {
+        for (const root of newRoots) this.parentElement.appendChild(root.ref);
+      }
+    } else {
+      for (let i = 0; i < data.length; i++) {
+        this.roots_[i].fullUpdate(data[i], keyProp ?? this.keyProp_, options_, ctx);
       }
     }
   }
@@ -1986,10 +2020,12 @@ export class Forest<T extends Data<Key> & Children<T>, Key extends string | numb
   }
 
   mountTo(element: HTMLElement) {
+    this.parentElement = element;
     for (const root of this.roots_) element.appendChild(root.ref);
   }
 
   unmountFrom(element: HTMLElement) {
+    this.parentElement = null;
     for (const root of this.roots_) element.removeChild(root.ref);
   }
 
