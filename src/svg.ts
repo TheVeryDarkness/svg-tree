@@ -724,7 +724,6 @@ Z`,
     out_shape.style.stroke = linkColor ?? "";
     out_shape.setAttribute("d", outPath);
     out_shape.setAttribute("svg-uuid", String(uuid));
-    console.log(out_shape);
   }
 
   /**
@@ -1807,14 +1806,11 @@ export class Tree<T extends Data<Key> & Children<T>, Key extends string | number
   }
   setActiveKey(key: string | number | undefined) {
     if (this.activeKey_ === key) return;
-    const prevActiveNodes = this.manager.findNodesByKey(this.activeKey_);
     const newActiveNodes = this.manager.findNodesByKey(key);
     const hasActive = newActiveNodes.length > 0;
-    for (const node of prevActiveNodes) {
-      node.setActive(false, hasActive);
-    }
-    for (const node of newActiveNodes) {
-      node.setActive(true, hasActive);
+    for (const node of this.manager.nodes.values()) {
+      const derefNode = node[0]?.deref();
+      if (derefNode) derefNode.setActive(derefNode.key === key, hasActive);
     }
 
     this.activeKey_ = key;
