@@ -1790,9 +1790,11 @@ export class Tree<T extends Data<Key> & Children<T>, Key extends string | number
 
   setActiveNode(node: TreeNode<T, Key> | undefined) {
     const hasActive = node !== undefined;
-    for (const node_ of this.manager.nodes.values()) {
-      const derefNode = node_[0]?.deref();
-      if (derefNode) derefNode.setActive(derefNode === node, hasActive);
+    for (const nodes of this.manager.nodes.values()) {
+      for (const node_ of nodes) {
+        const derefNode = node_.deref();
+        if (derefNode) derefNode.setActive(derefNode === node, hasActive);
+      }
     }
 
     this.activeKey_ = node?.key;
@@ -1808,9 +1810,11 @@ export class Tree<T extends Data<Key> & Children<T>, Key extends string | number
     if (this.activeKey_ === key) return;
     const newActiveNodes = this.manager.findNodesByKey(key);
     const hasActive = newActiveNodes.length > 0;
-    for (const node of this.manager.nodes.values()) {
-      const derefNode = node[0]?.deref();
-      if (derefNode) derefNode.setActive(derefNode.key === key, hasActive);
+    for (const nodes of this.manager.nodes.values()) {
+      for (const node_ of nodes) {
+        const derefNode = node_.deref();
+        if (derefNode) derefNode.setActive(derefNode.key === key, hasActive);
+      }
     }
 
     this.activeKey_ = key;
@@ -1964,9 +1968,11 @@ export class Forest<T extends Data<Key> & Children<T>, Key extends string | numb
 
   setActiveNode(node: TreeNode<T, Key> | undefined) {
     const hasActive = node !== undefined;
-    for (const node_ of this.manager.nodes.values()) {
-      const derefNode = node_[0]?.deref();
-      if (derefNode) derefNode.setActive(derefNode === node, hasActive);
+    for (const nodes of this.manager.nodes.values()) {
+      for (const node_ of nodes) {
+        const derefNode = node_.deref();
+        if (derefNode) derefNode.setActive(derefNode === node, hasActive);
+      }
     }
 
     this.activeKey_ = node?.key;
@@ -1982,9 +1988,11 @@ export class Forest<T extends Data<Key> & Children<T>, Key extends string | numb
     if (this.activeKey_ === key) return;
     const newActiveNodes = this.manager.findNodesByKey(key);
     const hasActive = newActiveNodes.length > 0;
-    for (const node of this.manager.nodes.values()) {
-      const derefNode = node[0]?.deref();
-      if (derefNode) derefNode.setActive(derefNode.key === key, hasActive);
+    for (const nodes of this.manager.nodes.values()) {
+      for (const node_ of nodes) {
+        const derefNode = node_.deref();
+        if (derefNode) derefNode.setActive(derefNode.key === key, hasActive);
+      }
     }
 
     this.activeKey_ = key;
