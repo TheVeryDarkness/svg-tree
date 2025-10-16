@@ -1710,6 +1710,11 @@ interface EventMap<T extends Data<Key> & Children<T>, Key extends string | numbe
     originalEvent: MouseEvent;
     uuid?: UUID;
   };
+  /**
+   * Keyboard event on a node. Note that the node must be focused to receive keyboard events.
+   *
+   * @deprecated SVG elements do not naturally receive focus, so this event may not be fired as expected. Consider using `keydown` events on a parent HTML element instead.
+   */
   keydown: {
     node: TreeNode<T, Key>;
     originalEvent: KeyboardEvent;
@@ -1740,6 +1745,7 @@ export class Tree<T extends Data<Key> & Children<T>, Key extends string | number
   private readonly manager = new Manager<T, Key>();
   private readonly eventTarget = new EventTarget();
   private activeKey_: string | number | undefined = undefined;
+  private activeNodes_: TreeNode<T, Key>[] = [];
 
   private watchScheme() {
     const options_ = mergeColorOptions(this.options_?.color);
@@ -1806,6 +1812,7 @@ export class Tree<T extends Data<Key> & Children<T>, Key extends string | number
     }
 
     this.activeKey_ = node?.key;
+    this.activeNodes_ = node ? [node] : [];
     this.eventTarget.dispatchEvent(
       event<"active", T, Key>("active", {
         node: node ? [node] : [],
@@ -1826,6 +1833,7 @@ export class Tree<T extends Data<Key> & Children<T>, Key extends string | number
     }
 
     this.activeKey_ = key;
+    this.activeNodes_ = newActiveNodes;
     this.eventTarget.dispatchEvent(
       event<"active", T, Key>("active", {
         node: newActiveNodes,
@@ -1834,8 +1842,15 @@ export class Tree<T extends Data<Key> & Children<T>, Key extends string | number
       }),
     );
   }
+
   get activeKey(): string | number | undefined {
     return this.activeKey_;
+  }
+  get activeNodes(): TreeNode<T, Key>[] {
+    return this.activeNodes_;
+  }
+  get activeNode(): TreeNode<T, Key> | undefined {
+    return this.activeNodes[0];
   }
 
   addEventListener<K extends keyof EventMap<T, Key>>(
@@ -1881,6 +1896,7 @@ export class Forest<T extends Data<Key> & Children<T>, Key extends string | numb
   private readonly manager = new Manager<T, Key>();
   private readonly eventTarget = new EventTarget();
   private activeKey_: string | number | undefined = undefined;
+  private activeNodes_: TreeNode<T, Key>[] = [];
 
   private watchScheme() {
     const options_ = mergeColorOptions(this.options_?.color);
@@ -1984,6 +2000,7 @@ export class Forest<T extends Data<Key> & Children<T>, Key extends string | numb
     }
 
     this.activeKey_ = node?.key;
+    this.activeNodes_ = node ? [node] : [];
     this.eventTarget.dispatchEvent(
       event<"active", T, Key>("active", {
         node: node ? [node] : [],
@@ -2004,6 +2021,7 @@ export class Forest<T extends Data<Key> & Children<T>, Key extends string | numb
     }
 
     this.activeKey_ = key;
+    this.activeNodes_ = newActiveNodes;
     this.eventTarget.dispatchEvent(
       event<"active", T, Key>("active", {
         node: newActiveNodes,
@@ -2012,8 +2030,15 @@ export class Forest<T extends Data<Key> & Children<T>, Key extends string | numb
       }),
     );
   }
+
   get activeKey(): string | number | undefined {
     return this.activeKey_;
+  }
+  get activeNodes(): TreeNode<T, Key>[] {
+    return this.activeNodes_;
+  }
+  get activeNode(): TreeNode<T, Key> | undefined {
+    return this.activeNodes[0];
   }
 
   addEventListener<K extends keyof EventMap<T, Key>>(
