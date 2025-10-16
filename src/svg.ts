@@ -1780,6 +1780,14 @@ export class Tree<T extends Data<Key> & Children<T>, Key extends string | number
         );
       });
     }
+    for (const type of ["keydown"] as const) {
+      this.root_.ref.addEventListener(type, (e) => {
+        const target = this.manager.getEventTarget(e);
+        if (!target) return;
+        const [node, uuid] = target;
+        this.eventTarget.dispatchEvent(event<typeof type, T, Key>(type, { node, originalEvent: e, uuid }));
+      });
+    }
   }
 
   update(data?: T, keyProp?: Key, options?: PartialOptions, ctx?: OffscreenCanvasRenderingContext2D) {
