@@ -1,6 +1,6 @@
 import qunit from "qunit";
 import { Tree } from "../src/svg";
-import { Children, Data } from "../src/types";
+import { Children, createContext, Data, defaultLightColorOptions, defaultOptions, mergeOptions, Options } from "../src/types";
 
 interface T extends Data, Children<T> {}
 
@@ -37,14 +37,22 @@ qunit.module("create test");
 import deepChain10Std from "./deepChain10.svg?raw";
 import deepBinary2Std from "./deepBinary2.svg?raw";
 
+const canvas = new OffscreenCanvas(0, 0);
+const ctx = createContext(canvas);
+
+const options: Options = mergeOptions({
+  color: { ...defaultLightColorOptions },
+  font: { fontFamily: "JetBrains Mono" },
+});
+
 qunit.test("deepChain10", () => {
-  const tree = new Tree(deepChain10, "path");
+  const tree = new Tree(deepChain10, "path", options, ctx);
   // console.log(tree.svg.outerHTML);
   qunit.assert.strictEqual(tree.svg.outerHTML, deepChain10Std);
 });
 
 qunit.test("deepBinary2", () => {
-  const tree = new Tree(deepBinary2, "path");
+  const tree = new Tree(deepBinary2, "path", options, ctx);
   // console.log(tree.svg.outerHTML);
   qunit.assert.strictEqual(tree.svg.outerHTML, deepBinary2Std);
 });
