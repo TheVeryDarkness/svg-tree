@@ -178,12 +178,12 @@ schemeMatcher.addEventListener("change", (e) => {
   if (e.matches) {
     defaultOptions.color = defaultDarkColorOptions;
     for (const key of colorKeys) {
-      defaultColorOptions[key as keyof ColorOptions] = defaultDarkColorOptions[key as keyof ColorOptions];
+      defaultColorOptions[key] = defaultDarkColorOptions[key];
     }
   } else {
     defaultOptions.color = defaultLightColorOptions;
     for (const key of colorKeys) {
-      defaultColorOptions[key as keyof ColorOptions] = defaultLightColorOptions[key as keyof ColorOptions];
+      defaultColorOptions[key] = defaultLightColorOptions[key];
     }
   }
 });
