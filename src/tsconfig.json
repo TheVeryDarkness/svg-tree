@@ -4,10 +4,8 @@
     "declarationMap": true,
     "sourceMap": true,
     "outDir": "../dist",
-    "rootDir": ".",
+    "rootDir": "."
   },
-  "include": [
-    "./**/*",
-  ],
+  "include": ["./**/*"],
   "extends": "../tsconfig.base.json"
 }

@@ -3,19 +3,12 @@
     "target": "es2022",
     "module": "es2022",
     "moduleResolution": "node",
-    "lib": [
-      "es2023",
-      "DOM",
-    ],
+    "lib": ["es2023", "DOM"],
     "noEmitOnError": true,
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": false,
-    "forceConsistentCasingInFileNames": true,
+    "forceConsistentCasingInFileNames": true
   },
-  "exclude": [
-    "node_modules",
-    "dist",
-    "dist-tests",
-  ],
+  "exclude": ["node_modules", "dist", "dist-tests"]
 }
