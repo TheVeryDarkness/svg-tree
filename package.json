@@ -7,7 +7,8 @@
   "module": "dist/svg.js",
   "types": "dist/svg.d.ts",
   "files": [
-    "dist"
+    "dist",
+    "!**/tsconfig.tsbuildinfo"
   ],
   "exports": {
     ".": {
