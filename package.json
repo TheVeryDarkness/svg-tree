@@ -10,26 +10,27 @@
     "dist"
   ],
   "exports": {
-    "./svg": {
+    ".": {
       "types": "./dist/svg.d.ts",
-      "import": "./dist/svg.js",
-      "require": "./dist/svg.cjs"
+      "node": "./dist/svg.js"
     },
-    "./types": {
-      "types": "./dist/types.d.ts",
-      "import": "./dist/types.js",
-      "require": "./dist/types.cjs"
+    "./*": {
+      "types": "./dist/*.d.ts",
+      "node": "./dist/*.js"
     },
-    "./utils": {
-      "types": "./dist/utils.d.ts",
-      "import": "./dist/utils.js",
-      "require": "./dist/utils.cjs"
+    "./*.js": {
+      "types": "./dist/*.d.ts",
+      "node": "./dist/*.js"
     }
   },
   "scripts": {
-    "build": "tsc",
-    "dev": "tsc --watch",
-    "clean": "rm -r dist",
+    "list-ts": "tsc --listFilesOnly",
+    "build": "tsc --build src",
+    "dev": "tsc --watch src",
+    "clean": "rm -r dist && rm -r dist-tests || true",
+    "build:tests": "tsc -p tests/tsconfig.json && rollup -c ./tests/rollup.config.js",
+    "dev:tests": "rollup -c ./tests/rollup.config.js --watch",
+    "test": "qunit dist-tests/tests.js",
     "prepublishOnly": "pnpm run clean && pnpm run build",
     "format:check": "prettier --check ."
   },
@@ -42,8 +43,15 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "@types/node": "^24.5.2",
+    "@loonguo/rollup-plugin-raw": "^0.0.5",
+    "@rollup/plugin-commonjs": "^28.0.8",
+    "@rollup/plugin-node-resolve": "^16.0.3",
+    "@rollup/plugin-typescript": "^12.1.4",
+    "@types/qunit": "^2.19.13",
     "prettier": "^3.6.2",
+    "qunit": "^2.24.2",
+    "rollup": "^4.52.5",
+    "tslib": "^2.8.1",
     "typescript": "^5.9.2"
   }
 }

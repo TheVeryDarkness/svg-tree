@@ -3,11 +3,11 @@ node_modules/
 
 # Build output
 dist/
+dist-tests/
 
 # Examples (for testing)
 example.js
 advanced-example.js
-*.svg
 
 # Logs
 *.log

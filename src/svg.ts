@@ -1535,6 +1535,25 @@ Z`,
     this.ref_.remove();
   }
 
+  /**
+   * Count the total number of nodes in this subtree.
+   * @param includeCollapsed Whether to include collpsed nodes.
+   * @returns Total number of nodes.
+   */
+  count(includeCollapsed: boolean = false): number {
+    let queue: TreeNode<T, Key>[] = [this];
+    let count = 0;
+    while (queue.length > 0) {
+      const node = queue.shift();
+      if (!node) break;
+      count++;
+      if (includeCollapsed || !node.collapsed) {
+        queue.push(...node.children);
+      }
+    }
+    return count;
+  }
+
   get ref(): SVGSVGElement {
     return this.ref_;
   }

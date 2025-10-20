@@ -29,5 +29,7 @@ jobs:
         run: pnpm i
       - name: Build
         run: pnpm run build
+      - name: Build Tests
+        run: pnpm run build:tests
       - name: Check code formatting
         run: pnpm run format:check
