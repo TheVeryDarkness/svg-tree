@@ -1,6 +1,6 @@
 {
   "name": "tree2svg",
-  "version": "1.0.8",
+  "version": "1.0.9",
   "description": "TS library for rendering tree objects into SVG.",
   "type": "module",
   "main": "dist/svg.js",
@@ -13,15 +13,15 @@
   "exports": {
     ".": {
       "types": "./dist/svg.d.ts",
-      "node": "./dist/svg.js"
+      "import": "./dist/svg.js"
     },
     "./*": {
       "types": "./dist/*.d.ts",
-      "node": "./dist/*.js"
+      "import": "./dist/*.js"
     },
     "./*.js": {
       "types": "./dist/*.d.ts",
-      "node": "./dist/*.js"
+      "import": "./dist/*.js"
     }
   },
   "scripts": {
