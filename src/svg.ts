@@ -721,6 +721,7 @@ Z`,
     out_shape.style.fill = outSelfFill ?? "transparent";
     out_shape.style.strokeLinejoin = "round";
     // out_shape.style.vectorEffect = "non-scaling-stroke";
+    out_shape.style.color = linkColor ?? "";
     out_shape.style.stroke = linkColor ?? "";
     out_shape.setAttribute("d", outPath);
     out_shape.setAttribute("svg-uuid", String(uuid));
@@ -804,6 +805,7 @@ Z`,
     path.classList.add("link");
     path.style.fill = "none";
     // path.style.vectorEffect = "non-scaling-stroke";
+    path.style.color = linkColor ?? "";
     path.style.stroke = linkColor ?? "";
     path.style.strokeDasharray = String(dashArray ?? "");
     path.style.strokeWidth = String(strokeWidth);
