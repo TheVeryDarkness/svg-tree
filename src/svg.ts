@@ -19,6 +19,8 @@ import {
   Children,
   NotePadding,
   ShapeSize,
+  InViewOptions,
+  defaultInViewOptions,
 } from "./types";
 
 type UUID = number;
@@ -1554,6 +1556,10 @@ Z`,
     return count;
   }
 
+  nodeBoundingRect(): DOMRect {
+    return this.node[0].getBoundingClientRect();
+  }
+
   get ref(): SVGSVGElement {
     return this.ref_;
   }
@@ -1613,6 +1619,18 @@ Z`,
       this.fullUpdate();
     }
   }
+  expandAll() {
+    let queue: TreeNode<T, Key>[] = [this];
+    while (queue.length > 0) {
+      const node = queue.shift();
+      if (!node) break;
+      if (!node.collapsed && node.children.length > 0) {
+        node.collapsed = false;
+      }
+      queue.push(...node.children);
+    }
+    this.fullUpdate();
+  }
   setActive(active: boolean = !super.active, hasActive: boolean = active) {
     if (super.hasActive === hasActive && super.active === active) return;
     super.hasActive = hasActive;
@@ -1635,6 +1653,9 @@ Z`,
   }
   get collapsed(): boolean {
     return super.collapsed;
+  }
+  private set collapsed(value: boolean) {
+    super.collapsed = value;
   }
   get active(): boolean {
     return super.active;
@@ -1758,6 +1779,30 @@ function event<K extends keyof EventMap<T, Key>, T extends Data<Key> & Children<
   detail: EventKind<K, T, Key>,
 ): CustomEvent<EventKind<K, T, Key>> {
   return new CustomEvent<EventKind<K, T, Key>>(type, { detail });
+}
+
+/**
+ * Check if rectangle a is in rectangle b according to the given options.
+ * @param a Rectangle to check.
+ * @param b Rectangle to check against.
+ * @param options InView options.
+ * @returns Whether rectangle a is in rectangle b.
+ */
+function inView(a: DOMRect, b: DOMRect, options: InViewOptions): boolean {
+  const xFull = a.left >= b.left && a.right <= b.right;
+  const yFull = a.top >= b.top && a.bottom <= b.bottom;
+  const xPartial = a.left < b.right && a.right > b.left;
+  const yPartial = a.top < b.bottom && a.bottom > b.top;
+  switch (options.full) {
+    case true:
+      return xFull && yFull;
+    case "vertical":
+      return yFull && xPartial;
+    case "horizontal":
+      return xFull && yPartial;
+    case false:
+      return xPartial && yPartial;
+  }
 }
 
 export class Tree<T extends Data<Key> & Children<T>, Key extends string | number | symbol = "path"> {
@@ -1887,6 +1932,12 @@ export class Tree<T extends Data<Key> & Children<T>, Key extends string | number
     options?: boolean | EventListenerOptions,
   ) {
     this.eventTarget.removeEventListener(type, <EventListener>listener, options);
+  }
+
+  inView(node: TreeNode<T, Key>, options: InViewOptions = defaultInViewOptions): boolean {
+    const svgRect = this.root_.ref.getBoundingClientRect();
+    const nodeRect = node.nodeBoundingRect();
+    return inView(nodeRect, svgRect, options);
   }
 
   mountTo(element: HTMLElement) {
@@ -2075,6 +2126,17 @@ export class Forest<T extends Data<Key> & Children<T>, Key extends string | numb
     options?: boolean | EventListenerOptions,
   ) {
     this.eventTarget.removeEventListener(type, <EventListener>listener, options);
+  }
+
+  inView(node: TreeNode<T, Key>, options: InViewOptions = defaultInViewOptions): boolean {
+    const nodeRect = node.nodeBoundingRect();
+    for (const root of this.roots_) {
+      const svgRect = root.ref.getBoundingClientRect();
+      if (inView(nodeRect, svgRect, options)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   mountTo(element: HTMLElement) {

@@ -391,3 +391,17 @@ export interface TreeEvent<T, E> {
   getCollapsed(): boolean;
   getVertical(): boolean;
 }
+
+/**
+ * Options for the inView method.
+ */
+export interface InViewOptions {
+  /**
+   * Whether to check full visibility or partial visibility.
+   */
+  full: boolean | "vertical" | "horizontal";
+}
+
+export const defaultInViewOptions: InViewOptions = {
+  full: false,
+};
