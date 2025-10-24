@@ -44,15 +44,26 @@ const options: Options = mergeOptions({
   color: { ...defaultLightColorOptions },
   font: { fontFamily: "JetBrains Mono" },
 });
+function removeAttribute(html: string): string {
+  return html.replace(/svg-uuid="\d+" /g, "");
+}
 
 qunit.test("deepChain10", () => {
   const tree = new Tree(deepChain10, "path", options, ctx);
   // console.log(tree.svg.outerHTML);
-  qunit.assert.strictEqual(tree.svg.outerHTML, deepChain10Std);
+  qunit.assert.strictEqual(removeAttribute(tree.svg.outerHTML), deepChain10Std);
+  tree.update(deepBinary2);
+  qunit.assert.strictEqual(removeAttribute(tree.svg.outerHTML), deepBinary2Std);
+  tree.update(deepChain10);
+  qunit.assert.strictEqual(removeAttribute(tree.svg.outerHTML), deepChain10Std);
 });
 
 qunit.test("deepBinary2", () => {
   const tree = new Tree(deepBinary2, "path", options, ctx);
   // console.log(tree.svg.outerHTML);
-  qunit.assert.strictEqual(tree.svg.outerHTML, deepBinary2Std);
+  qunit.assert.strictEqual(removeAttribute(tree.svg.outerHTML), deepBinary2Std);
+  tree.update(deepChain10);
+  qunit.assert.strictEqual(removeAttribute(tree.svg.outerHTML), deepChain10Std);
+  tree.update(deepBinary2);
+  qunit.assert.strictEqual(removeAttribute(tree.svg.outerHTML), deepBinary2Std);
 });
